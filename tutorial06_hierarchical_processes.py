@@ -260,13 +260,12 @@ class SubDenseLayerModel(AbstractSubProcessModel):
 # In[12]:
 
 #@st.cache
-
 def generate_sankey_figure(
-    nodes_list: List, edges_df: pd.DataFrame, title: str = "Sankey Diagram"
+    nodes_list, edges_df, title = "neural connectivity"
 ):
 
-    edges_df["src"] = edges_df["src"].apply(lambda x: nodes_list.index(x))
-    edges_df["tgt"] = edges_df["tgt"].apply(lambda x: nodes_list.index(x))
+    #edges_df["src"] = edges_df["src"].apply(lambda x: nodes_list.index(x))
+    #edges_df["tgt"] = edges_df["tgt"].apply(lambda x: nodes_list.index(x))
     # creating the sankey diagram
     data = dict(
         type="sankey",
@@ -287,94 +286,96 @@ def generate_sankey_figure(
     fig = go.Figure(data=[data], layout=layout)
     st.write(fig)
 
-    def cached_chord(first):
-        H = first.to_undirected()
-        centrality = nx.betweenness_centrality(H, k=10, endpoints=True)
+def cached_chord(first):
+    H = first.to_undirected()
+    centrality = nx.betweenness_centrality(H, k=10, endpoints=True)
 
-        # centrality = nx.betweenness_centrality(H)#, endpoints=True)
-        df = pd.DataFrame([centrality])
-        df = df.T
-        df.sort_values(0, axis=0, ascending=False, inplace=True)
-        bc = df
-        bc.rename(columns={0: "centrality value"}, inplace=True)
+    # centrality = nx.betweenness_centrality(H)#, endpoints=True)
+    df = pd.DataFrame([centrality])
+    df = df.T
+    df.sort_values(0, axis=0, ascending=False, inplace=True)
+    bc = df
+    bc.rename(columns={0: "centrality value"}, inplace=True)
 
-        temp = pd.DataFrame(first.nodes)
-        nodes = hv.Dataset(temp[0])
+    temp = pd.DataFrame(first.nodes)
+    nodes = hv.Dataset(temp[0])
 
-        links = copy.copy(adj_mat)
-        links.rename(
-            columns={"weight": "value", "src": "source", "tgt": "target"}, inplace=True
+    links = copy.copy(adj_mat)
+    links.rename(
+        columns={"weight": "value", "src": "source", "tgt": "target"}, inplace=True
+    )
+    links = links[links["value"] != 0]
+
+    Nodes_ = set(
+        links["source"].unique().tolist() + links["target"].unique().tolist()
+    )
+    Nodes = {node: i for i, node in enumerate(Nodes_)}
+
+    df_links = links.replace({"source": Nodes, "target": Nodes})
+    for k in Nodes.keys():
+        if k not in color_code_0.keys():
+            color_code_0[k] = "Unknown"
+
+    df_nodes = pd.DataFrame(
+        {
+            "index": [idx for idx in Nodes.values()],
+            "name": [name for name in Nodes.keys()],
+            "colors": [color_code_0[k] for k in Nodes.keys()],
+        }
+    )
+    dic_to_sort = {}
+    for i, kk in enumerate(df_nodes["name"]):
+        dic_to_sort[i] = color_code_0[k]
+
+    t = pd.Series(dic_to_sort)
+    df_nodes["sort"] = t  # pd.Series(df_links.source)
+    df_nodes.sort_values(by=["sort"], inplace=True)
+
+    dic_to_sort = {}
+    for i, kk in enumerate(df_links["source"]):
+        k = df_nodes.loc[kk, "name"]
+        # st.text(k)
+        if k not in color_code_0.keys():
+            color_code_0[k] = "Unknown"
+        df_nodes.loc[kk, "colors"] = color_code_0[k]
+        dic_to_sort[i] = color_code_0[k]
+
+    pd.set_option("display.max_columns", 11)
+    hv.extension("bokeh")
+    hv.output(size=200)
+    t = pd.Series(dic_to_sort)
+    df_links["sort"] = t  # pd.Series(df_links.source)
+    df_links.sort_values(by=["sort"], inplace=True)
+    # df_links['colors'] = None
+    categories = np.unique(df_links["sort"])
+    colors = np.linspace(0, 1, len(categories))
+    colordicth = dict(zip(categories, colors))
+
+    df_links["Color"] = df_links["sort"].apply(lambda x: float(colordicth[x]))
+    colors = df_links["Color"].values
+    nodes = hv.Dataset(df_nodes, "index")
+    df_links["index"] = df_links["Color"]
+    chord = hv.Chord(
+        (df_links, nodes)
+    )  # .opts.Chord(cmap='Category20', edge_color=dim('source').astype(str), node_color=dim('index').astype(str))
+    chord.opts(
+        opts.Chord(
+            cmap="Category20",
+            edge_cmap="Category20",
+            edge_color=dim("sort").str(),
+            width=350,
+            height=350,
+            labels="Color",
         )
-        links = links[links["value"] != 0]
+    )
 
-        Nodes_ = set(
-            links["source"].unique().tolist() + links["target"].unique().tolist()
-        )
-        Nodes = {node: i for i, node in enumerate(Nodes_)}
-
-        df_links = links.replace({"source": Nodes, "target": Nodes})
-        for k in Nodes.keys():
-            if k not in color_code_0.keys():
-                color_code_0[k] = "Unknown"
-
-        df_nodes = pd.DataFrame(
-            {
-                "index": [idx for idx in Nodes.values()],
-                "name": [name for name in Nodes.keys()],
-                "colors": [color_code_0[k] for k in Nodes.keys()],
-            }
-        )
-        dic_to_sort = {}
-        for i, kk in enumerate(df_nodes["name"]):
-            dic_to_sort[i] = color_code_0[k]
-
-        t = pd.Series(dic_to_sort)
-        df_nodes["sort"] = t  # pd.Series(df_links.source)
-        df_nodes.sort_values(by=["sort"], inplace=True)
-
-        dic_to_sort = {}
-        for i, kk in enumerate(df_links["source"]):
-            k = df_nodes.loc[kk, "name"]
-            # st.text(k)
-            if k not in color_code_0.keys():
-                color_code_0[k] = "Unknown"
-            df_nodes.loc[kk, "colors"] = color_code_0[k]
-            dic_to_sort[i] = color_code_0[k]
-
-        pd.set_option("display.max_columns", 11)
-        hv.extension("bokeh")
-        hv.output(size=200)
-        t = pd.Series(dic_to_sort)
-        df_links["sort"] = t  # pd.Series(df_links.source)
-        df_links.sort_values(by=["sort"], inplace=True)
-        # df_links['colors'] = None
-        categories = np.unique(df_links["sort"])
-        colors = np.linspace(0, 1, len(categories))
-        colordicth = dict(zip(categories, colors))
-
-        df_links["Color"] = df_links["sort"].apply(lambda x: float(colordicth[x]))
-        colors = df_links["Color"].values
-        nodes = hv.Dataset(df_nodes, "index")
-        df_links["index"] = df_links["Color"]
-        chord = hv.Chord(
-            (df_links, nodes)
-        )  # .opts.Chord(cmap='Category20', edge_color=dim('source').astype(str), node_color=dim('index').astype(str))
-        chord.opts(
-            opts.Chord(
-                cmap="Category20",
-                edge_cmap="Category20",
-                edge_color=dim("sort").str(),
-                width=350,
-                height=350,
-                labels="Color",
-            )
-        )
-
-        hv.save(chord, "chord2.html", backend="bokeh")
-    cached_chord(first)
-    HtmlFile2 = open("chord2.html", "r", encoding="utf-8")
-    source_code2 = HtmlFile2.read()
-    components.html(source_code2, height=750, width=750)
+    hv.save(chord, "chord2.html", backend="bokeh")
+'''
+cached_chord(first)
+HtmlFile2 = open("chord2.html", "r", encoding="utf-8")
+source_code2 = HtmlFile2.read()
+components.html(source_code2, height=750, width=750)
+'''
 '''
 def make_sankey_chart(df, transport_types):
 
