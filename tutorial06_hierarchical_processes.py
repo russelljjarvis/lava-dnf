@@ -35,7 +35,7 @@
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.variable import Var
 from lava.magma.core.process.ports.ports import InPort, OutPort
-
+import elephant
 
 class Dense(AbstractProcess):
     """Dense connections between neurons.
@@ -258,6 +258,57 @@ class SubDenseLayerModel(AbstractSubProcessModel):
 # #### Run Connected DenseLayer _Processes_
 
 # In[12]:
+
+
+def plot_conn_sankey(conv_kernel,ncells):
+    import plotly.graph_objects as go
+    import pandas as pd
+    edges_df=[]
+    for y,i in enumerate(conv_kernel.weights.init):
+        for x,j in enumerate(i):
+            if j!=0.0:
+                edges={'src':y,'tgt':int(x+ncells),'weight':np.abs(j)}
+                edges_df.append(edges)
+    edges_df = pd.DataFrame(edges_df)
+    edges_df = edges_df[0:15]
+
+
+    labels = edges_df.index
+    labels = list(labels)
+    temp = list(edges_df["tgt"].values)
+
+    labels.extend(temp)
+    #labels.append(temp[-1])
+    #del labels[-1]
+
+    data = dict(
+        type="sankey",
+        node=dict(
+            hoverinfo="all",
+            pad=15,
+            thickness=20,
+            line=dict(color="black", width=0.5),
+            label=labels,
+        ),
+        link=dict(
+            source=edges_df["src"], target=edges_df["tgt"], value=edges_df["weight"]
+        ),
+    )
+
+    layout = dict(title='Layered Network Connectivity', font=dict(size=10))
+
+    fig = go.Figure(data=[data], layout=layout)
+    fig.show()
+
+
+def compute_cv(spikes_population):
+    '''
+    Compute coefficient of variation on a whole population of spike trains.
+    '''
+    train_of_trains = []
+    for spike_train in spikes_population.T:
+        train_of_trains.extend(spike_train)
+    return elephant.statistics.cv(train_of_trains, axis=0, nan_policy='propagate')
 
 #@st.cache
 def generate_sankey_figure(
