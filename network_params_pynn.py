@@ -1,16 +1,6 @@
-###################################################
-###     	Network parameters		###
-###################################################
 
-
-# Simulator back-end
-#simulator = 'nest'
-
-# Load params from params_dict into global namespace
-#globals().update(params_dict[simulator])
-
-# Relative inhibitory synaptic weight
 g = -4.
+from dicthash import dicthash
 
 neuron_params = {
     'cm'        : 0.25,  # nF
@@ -117,11 +107,10 @@ thal_params = {
 # Plotting parameters
 create_raster_plot = True
 raster_t_min = 0  # ms
-raster_t_max = sim_params.simulator_params[simulator]['sim_duration']  # ms
+#raster_t_max = sim_params.simulator_params[simulator]['sim_duration']  # ms
 # Fraction of recorded neurons to include in raster plot
 frac_to_plot = 0.01
 params_dict = {
-  {
     # Whether to make random numbers independent of the number of processes
     # Fraction of neurons to simulate
     'N_scaling' : 1.,
@@ -153,4 +142,3 @@ params_dict = {
     # record_v=True and record_fraction = True
     'frac_record_v' : 0.02,
   }
-}

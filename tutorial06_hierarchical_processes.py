@@ -314,9 +314,11 @@ def compute_cv(spikes_population):
 def generate_sankey_figure(
     nodes_list, edges_df, title = "neural connectivity"
 ):
+    import plotly.graph_objects as go
 
-    #edges_df["src"] = edges_df["src"].apply(lambda x: nodes_list.index(x))
-    #edges_df["tgt"] = edges_df["tgt"].apply(lambda x: nodes_list.index(x))
+
+    edges_df["src"] = edges_df["src"].apply(lambda x: nodes_list.index(x))
+    edges_df["tgt"] = edges_df["tgt"].apply(lambda x: nodes_list.index(x))
     # creating the sankey diagram
     data = dict(
         type="sankey",
@@ -328,14 +330,13 @@ def generate_sankey_figure(
             label=nodes_list,
         ),
         link=dict(
-            source=edges_df["src"], target=edges_df["tgt"], value=edges_df["weight"]
+            source=edges_df["src"], target=edges_df["tgt"], value=100*edges_df["weight"]
         ),
     )
 
-    layout = dict(title=title, font=dict(size=10))
-
+    layout = dict(title='Layered Network Connectivity', font=dict(size=10))
     fig = go.Figure(data=[data], layout=layout)
-    st.write(fig)
+    return fig
 
 def cached_chord(first):
     H = first.to_undirected()

@@ -79,7 +79,7 @@ for (k,v) in network_params_pynn.N_full.items():
     node_name[str(k)+str("I")] = v["I"]
     enum_node_name[cnt] = str(k)+str("I")
     cd[str(k)+str("I")] = color_dict_[str(cnt)]
-
+    cnt += 1
 
 node_name;
 enum_node_name;

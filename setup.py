@@ -1,96 +1,81 @@
 #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
-#
-#   This file is part of PyBuilder
-#
-#   Copyright 2011-2020 PyBuilder Team
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
 
-#
-# This script allows to support installation via:
-#   pip install git+git://<project>@<branch>
-#
-# This script is designed to be used in combination with `pip install` ONLY
-#
-# DO NOT RUN MANUALLY
-#
+from setuptools import setup
+from setuptools.command.install import install as _install
 
-import os
-import subprocess
-import sys
-import glob
-import shutil
+class install(_install):
+    def pre_install_script(self):
+        pass
 
-from sys import version_info
+    def post_install_script(self):
+        pass
 
-py3 = version_info[0] == 3
-py2 = not py3
-if py2:
-    FileNotFoundError = OSError
+    def run(self):
+        self.pre_install_script()
 
+        _install.run(self)
 
-def install_pyb():
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "pybuilder"]
-        )
-    except subprocess.CalledProcessError as e:
-        sys.exit(e.returncode)
+        self.post_install_script()
 
+if __name__ == '__main__':
+    setup(
+        name = 'lava-dnf',
+        version = '0.1.0',
+        description = 'A library that provides processes and other software infrastructure to build architectures composed of Dynamic Neural Fields (DNF).',
+        long_description = '',
+        long_description_content_type = None,
+        classifiers = [
+            'Development Status :: 3 - Alpha',
+            'Programming Language :: Python'
+        ],
+        keywords = '',
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-exit_code = 0
+        author = '',
+        author_email = '',
+        maintainer = '',
+        maintainer_email = '',
 
-try:
-    subprocess.check_call(["pyb", "--version"])
-except FileNotFoundError as e:
-    if py3 or py2 and e.errno == 2:
-        install_pyb()
-    else:
-        raise
-except subprocess.CalledProcessError as e:
-    if e.returncode == 127:
-        install_pyb()
-    else:
-        sys.exit(e.returncode)
+        license = "['BSD-3-Clause']",
 
-try:
-    from pybuilder.cli import main
+        url = 'https://lava-nc.org',
+        project_urls = {},
 
-    # verbose, debug, skip all optional...
-    if main("-v", "-X", "-o", "--reset-plugins", "clean", "package"):
-        raise RuntimeError("PyBuilder build failed")
-
-    from pybuilder.reactor import Reactor
-
-    reactor = Reactor.current_instance()
-    project = reactor.project
-    dist_dir = project.expand_path("$dir_dist")
-
-    for src_file in glob.glob(os.path.join(dist_dir, "*")):
-        file_name = os.path.basename(src_file)
-        target_file_name = os.path.join(script_dir, file_name)
-        if os.path.exists(target_file_name):
-            if os.path.isdir(target_file_name):
-                shutil.rmtree(target_file_name)
-            else:
-                os.remove(target_file_name)
-        shutil.move(src_file, script_dir)
-    setup_args = sys.argv[1:]
-    subprocess.check_call(
-        [sys.executable, "setup.py"] + setup_args, cwd=script_dir
+        scripts = [],
+        packages = [],
+        namespace_packages = [],
+        py_modules = [
+            'lava.lib.dnf.connect.connect',
+            'lava.lib.dnf.connect.exceptions',
+            'lava.lib.dnf.connect.reshape_bool.models',
+            'lava.lib.dnf.connect.reshape_bool.process',
+            'lava.lib.dnf.connect.reshape_int.models',
+            'lava.lib.dnf.connect.reshape_int.process',
+            'lava.lib.dnf.inputs.gauss_pattern.models',
+            'lava.lib.dnf.inputs.gauss_pattern.process',
+            'lava.lib.dnf.inputs.rate_code_spike_gen.models',
+            'lava.lib.dnf.inputs.rate_code_spike_gen.process',
+            'lava.lib.dnf.kernels.kernels',
+            'lava.lib.dnf.operations.enums',
+            'lava.lib.dnf.operations.exceptions',
+            'lava.lib.dnf.operations.operations',
+            'lava.lib.dnf.operations.shape_handlers',
+            'lava.lib.dnf.utils.convenience',
+            'lava.lib.dnf.utils.math',
+            'lava.lib.dnf.utils.plotting',
+            'lava.lib.dnf.utils.validation'
+        ],
+        entry_points = {},
+        data_files = [],
+        package_data = {},
+        install_requires = [
+            'lava-nc@https://github.com/lava-nc/lava/releases/download/v0.2.0/lava-nc-0.2.0.tar.gz',
+            'numpy',
+            'scipy>=1.7.2'
+        ],
+        dependency_links = [],
+        zip_safe = True,
+        cmdclass = {'install': install},
+        python_requires = '',
+        obsoletes = [],
     )
-except subprocess.CalledProcessError as e:
-    exit_code = e.returncode
-sys.exit(exit_code)
